@@ -45,6 +45,7 @@ export class UsersController {
   @Get('current-user')
   getCurrentUser(@GetUser() user: Users) {
     delete user.refresh_token;
+    delete user.password;
     return user;
   }
 

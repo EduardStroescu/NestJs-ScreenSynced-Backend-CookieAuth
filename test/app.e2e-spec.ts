@@ -41,12 +41,12 @@ describe('App E2E', () => {
 
   describe('Auth', () => {
     const dto: CreateUserDto = {
-      userName: 'testUser',
+      email: 'testUser@gmail.com',
       password: '123',
       displayName: 'testUser',
     };
     describe('Registration', () => {
-      it('should throw if username is empty', () => {
+      it('should throw if email is empty', () => {
         return pactum
           .spec()
           .post(`/auth/register`)
@@ -57,14 +57,14 @@ describe('App E2E', () => {
         return pactum
           .spec()
           .post(`/auth/register`)
-          .withBody({ password: dto.password, userName: dto.userName })
+          .withBody({ password: dto.password, email: dto.email })
           .expectStatus(400);
       });
       it('should throw if password is empty', () => {
         return pactum
           .spec()
           .post(`/auth/register`)
-          .withBody({ userName: dto.userName, displayName: dto.displayName })
+          .withBody({ email: dto.email, displayName: dto.displayName })
           .expectStatus(400);
       });
       it('should throw if body is empty', () => {
@@ -83,7 +83,7 @@ describe('App E2E', () => {
       });
     });
     describe('Login', () => {
-      it('should throw if username is empty', () => {
+      it('should throw if email is empty', () => {
         return pactum
           .spec()
           .post(`/auth/login`)
@@ -94,7 +94,7 @@ describe('App E2E', () => {
         return pactum
           .spec()
           .post(`/auth/login`)
-          .withBody(dto.userName)
+          .withBody(dto.email)
           .expectStatus(400);
       });
       it('should throw if body is empty', () => {
@@ -128,9 +128,9 @@ describe('App E2E', () => {
       });
     });
     describe('Edit User', () => {
-      it("should edit current user's userName, displayName", () => {
+      it("should edit current user's email, displayName", () => {
         const dto: UpdateUserDto = {
-          userName: 'John',
+          email: 'John@gmail.com',
           displayName: 'Doe',
         };
         return pactum
@@ -140,7 +140,7 @@ describe('App E2E', () => {
           .withCookies(`$S{access_token}`)
           .withCookies(`$S{refresh_token}`)
           .expectStatus(200)
-          .expectBodyContains(dto.userName)
+          .expectBodyContains(dto.email)
           .expectBodyContains(dto.displayName);
       });
     });

@@ -9,7 +9,7 @@ export class LoginUserDto {
     maxLength: 20,
   })
   @IsNotEmpty()
-  userName: string;
+  email: string;
 
   @ApiProperty({
     type: String,

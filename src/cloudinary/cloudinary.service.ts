@@ -6,12 +6,12 @@ import { CloudinaryResponse } from './cloudinary-response';
 export class CloudinaryService {
   async uploadFile(
     base64String: string,
-    username: string,
+    email: string,
   ): Promise<CloudinaryResponse> {
     return new Promise<CloudinaryResponse>(async (resolve, reject) => {
       const uploadOptions = {
         upload_preset: 'unsigned_upload',
-        public_id: `${username}-avatar`,
+        public_id: `${email}-avatar`,
         allowed_formats: [
           'png',
           'jpg',

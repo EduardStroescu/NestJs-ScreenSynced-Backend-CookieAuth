@@ -86,7 +86,7 @@ export class UsersService {
 
       const newAvatar = await this.cloudinaryService.uploadFile(
         updateAvatarDto.avatar,
-        user.userName,
+        user.email,
       );
       const avatarUrl: string = newAvatar.url;
 

@@ -30,19 +30,19 @@ export class AuthService {
       if (user.avatar) {
         const userAvatar = await this.cloudinaryService.uploadFile(
           user.avatar,
-          user.userName,
+          user.email,
         );
         avatar = userAvatar.url;
       }
       const newUser = await this.prisma.users.create({
         data: {
-          userName: user.userName,
+          email: user.email,
           password,
           displayName: user.displayName,
           avatar,
         },
       });
-      const tokens = await this.signTokens(newUser.id, newUser.userName);
+      const tokens = await this.signTokens(newUser.id, newUser.email);
       await this.updateRefreshToken(newUser.id, tokens.refresh_token);
 
       delete newUser.password;
@@ -66,7 +66,7 @@ export class AuthService {
   async login(loginUserDto: LoginUserDto) {
     const user = await this.prisma.users.findUnique({
       where: {
-        userName: loginUserDto.userName,
+        email: loginUserDto.email,
       },
     });
 
@@ -78,15 +78,49 @@ export class AuthService {
     );
 
     if (!isPasswordValid)
-      throw new UnauthorizedException('Invalid username or password');
+      throw new UnauthorizedException('Invalid email or password');
 
-    const tokens = await this.signTokens(user.id, user.userName);
+    const tokens = await this.signTokens(user.id, user.email);
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
     delete user.password;
 
     return {
       ...user,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+    };
+  }
+
+  async oauthLogin(profile: any, provider: 'google' | 'facebook') {
+    let user = await this.prisma.users.findUnique({
+      where: { email: profile.email },
+    });
+
+    if (!user) {
+      user = await this.prisma.users.create({
+        data: {
+          email: profile.email,
+          displayName: `${profile.firstName}${profile.lastName}`,
+          avatar: profile.picture || null,
+          [`${provider}Id`]: profile.id,
+        },
+      });
+    } else if (user) {
+      if (!user[`${provider}Id`]) {
+        user = await this.prisma.users.update({
+          where: { email: profile.email },
+          data: {
+            [`${provider}Id`]: profile.id,
+          },
+        });
+      }
+    }
+
+    const tokens = await this.signTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    return {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
     };
@@ -112,7 +146,7 @@ export class AuthService {
 
       const { access_token } = await this.signTokens(
         payload.sub,
-        payload.userName,
+        payload.email,
       );
 
       res.cookie('access_token', access_token, {
@@ -144,11 +178,11 @@ export class AuthService {
 
   private async signTokens(
     userId: number,
-    userName: string,
+    email: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const payload = {
       sub: userId,
-      userName,
+      email,
     };
     const accessSecret = this.configService.get('ACCESS_SECRET');
     const refreshSecret = this.configService.get('REFRESH_SECRET');

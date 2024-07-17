@@ -21,10 +21,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { JwtGuard } from './guards';
+import { FacebookAuthGuard, GoogleAuthGuard, JwtGuard } from './guards';
 import { GetUser } from './decorator/GetUser.decorator';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { cookieConfig } from '../utils/helpers';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,20 +47,10 @@ export class AuthController {
   ) {
     const { access_token, refresh_token, ...user } =
       await this.authService.register(createUserDto);
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
-    res.cookie('refresh_token', refresh_token, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+
+    res.cookie('access_token', access_token, cookieOptions);
+    res.cookie('refresh_token', refresh_token, cookieOptions);
     return user;
   }
 
@@ -73,7 +64,7 @@ export class AuthController {
     status: 404,
   })
   @ApiUnauthorizedResponse({
-    description: 'Invalid username or password',
+    description: 'Invalid email or password',
     status: 401,
   })
   @HttpCode(HttpStatus.OK)
@@ -83,21 +74,47 @@ export class AuthController {
   ) {
     const { access_token, refresh_token, ...user } =
       await this.authService.login(loginUserDto);
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
-    res.cookie('refresh_token', refresh_token, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+
+    res.cookie('access_token', access_token, cookieOptions);
+    res.cookie('refresh_token', refresh_token, cookieOptions);
     return user;
+  }
+
+  @UseGuards(GoogleAuthGuard)
+  @Get('/login/google')
+  async googleLogin() {}
+
+  @UseGuards(GoogleAuthGuard)
+  @Get('google/redirect')
+  async googleRedirect(@Req() req: Request, @Res() res: Response) {
+    const { access_token, refresh_token } = await this.authService.oauthLogin(
+      req.user,
+      'google',
+    );
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+
+    res.cookie('access_token', access_token, cookieOptions);
+    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.redirect(this.configService.get('CLIENT_URL') + '?redirect=true');
+  }
+
+  @UseGuards(FacebookAuthGuard)
+  @Get('/login/facebook')
+  async facebookLogin() {}
+
+  @UseGuards(FacebookAuthGuard)
+  @Get('facebook/redirect')
+  async facebookRedirect(@Req() req: Request, @Res() res: Response) {
+    const { access_token, refresh_token } = await this.authService.oauthLogin(
+      req.user,
+      'facebook',
+    );
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+
+    res.cookie('access_token', access_token, cookieOptions);
+    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.redirect(this.configService.get('CLIENT_URL') + '?redirect=true');
   }
 
   @ApiOkResponse({
@@ -133,20 +150,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @GetUser('id', ParseIntPipe) userId: number,
   ) {
-    res.cookie('access_token', '', {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
-    res.cookie('refresh_token', '', {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite:
-        this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-      path: '/',
-    });
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+
+    res.cookie('access_token', '', cookieOptions);
+    res.cookie('refresh_token', '', cookieOptions);
     return await this.authService.logout(userId);
   }
 }

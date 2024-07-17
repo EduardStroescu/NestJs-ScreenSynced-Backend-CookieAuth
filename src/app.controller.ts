@@ -3,7 +3,6 @@ import { Response } from 'express';
 import { join } from 'path';
 import * as fs from 'fs';
 import {
-  ApiDefaultResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiResponse,
