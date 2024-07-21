@@ -6,6 +6,7 @@ import {
   HttpStatus,
   ParseIntPipe,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -88,6 +89,10 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get('google/redirect')
   async googleRedirect(@Req() req: Request, @Res() res: Response) {
+    if (!req.user)
+      return res.redirect(
+        this.configService.get('CLIENT_URL') + '?error=user_not_found',
+      );
     const { access_token, refresh_token } = await this.authService.oauthLogin(
       req.user,
       'google',
@@ -96,7 +101,7 @@ export class AuthController {
 
     res.cookie('access_token', access_token, cookieOptions);
     res.cookie('refresh_token', refresh_token, cookieOptions);
-    res.redirect(this.configService.get('CLIENT_URL') + '?redirect=true');
+    res.redirect(this.configService.get('CLIENT_URL') + '?success=true');
   }
 
   @UseGuards(FacebookAuthGuard)
@@ -106,6 +111,10 @@ export class AuthController {
   @UseGuards(FacebookAuthGuard)
   @Get('facebook/redirect')
   async facebookRedirect(@Req() req: Request, @Res() res: Response) {
+    if (!req.user)
+      return res.redirect(
+        this.configService.get('CLIENT_URL') + '?error=user_not_found',
+      );
     const { access_token, refresh_token } = await this.authService.oauthLogin(
       req.user,
       'facebook',
@@ -114,7 +123,12 @@ export class AuthController {
 
     res.cookie('access_token', access_token, cookieOptions);
     res.cookie('refresh_token', refresh_token, cookieOptions);
-    res.redirect(this.configService.get('CLIENT_URL') + '?redirect=true');
+    res.redirect(this.configService.get('CLIENT_URL') + '?success=true');
+  }
+
+  @Get('error')
+  authError(@Query('message') message: string, @Res() res: Response) {
+    res.redirect(this.configService.get('CLIENT_URL') + '?error=' + message);
   }
 
   @ApiOkResponse({
