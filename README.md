@@ -2,14 +2,14 @@
   <a href="https://screensynced.vercel.app/" target="blank"><img src="https://raw.githubusercontent.com/EduardStroescu/PubImages/main/WebsiteImages/screenSynced.jpg" alt="ScreenSynced Preview" /></a>
 </p>
 
-# ScreenSynced Database
+# ScreenSynced Backend
 
-### Links to the frontend:
+### Links to the Frontend:
 
 https://github.com/EduardStroescu/ScreenSynced-FrontEnd - repo
 https://screensynced.vercel.app/ - Live Demo
 
-### Links to backend main page and swagger documentation:
+### Links to Backend main page and swagger documentation:
 
 https://screensynced.vercel.app/ - Live Demo
 https://screensynced-backend.vercel.app/api/docs - Swagger Documentation
@@ -35,7 +35,7 @@ Full-Stack content streaming website using the TMDB API and NestJs along with Ne
 
 ## Description
 
-Recreated the old ScreenSynced backend which was build using ExpressJS and MongoDB and used JWT authentication. The new ScreenSynced backend is built using NestJS and Prisma and uses Docker Potgres for local development and testing, which also includes Pactum for E2E testing. Cloudinary is used for avatar uploads, the same as the old backend. Also included Github Actions for CI/CD.
+Recreated the old ScreenSynced backend which was built using ExpressJS and MongoDB and used JWT authentication. The new ScreenSynced backend is built using NestJS and Prisma and uses Docker Potgres for local development and testing, which also includes Pactum for E2E testing. Cloudinary is used for avatar uploads, the same as the old backend. Also included Github Actions for CI/CD.
 
 ## Installation
 
