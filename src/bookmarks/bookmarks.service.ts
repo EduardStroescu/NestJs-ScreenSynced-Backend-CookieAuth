@@ -2,8 +2,8 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
-  HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,48 +26,71 @@ export class BookmarksService {
         // Unique constraint failed
         throw new ConflictException('Bookmark already exists');
       }
-      throw new HttpException(
+      throw new InternalServerErrorException(
         'An error occurred while creating bookmark',
-        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   async getBookmarks(userId: number) {
-    return await this.prisma.bookmarks.findMany({
-      where: { userId: userId },
-    });
+    try {
+      return await this.prisma.bookmarks.findMany({
+        where: { userId: userId },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'An error occurred while retrieving bookmarks',
+      );
+    }
   }
 
   async getBookmarkById(userId: number, bookmarkId: number) {
-    const bookmark = await this.prisma.bookmarks.findUnique({
-      where: { userId: userId, id: bookmarkId },
-    });
-    if (!bookmark || bookmark.userId !== userId)
-      throw new NotFoundException('Bookmark not found');
-    return bookmark;
+    try {
+      const bookmark = await this.prisma.bookmarks.findUnique({
+        where: { userId: userId, id: bookmarkId },
+      });
+      if (!bookmark || bookmark.userId !== userId)
+        throw new NotFoundException('Bookmark not found');
+      return bookmark;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An error occurred while retrieving bookmark',
+      );
+    }
   }
 
   async removeBookmarkById(userId: number, bookmarkId: number) {
-    const bookmark = await this.prisma.bookmarks.findUnique({
-      where: { userId: userId, id: bookmarkId },
-    });
+    try {
+      const bookmark = await this.prisma.bookmarks.findUnique({
+        where: { userId: userId, id: bookmarkId },
+      });
 
-    if (!bookmark) {
-      throw new NotFoundException('Bookmark not found');
+      if (!bookmark) {
+        throw new NotFoundException('Bookmark not found');
+      }
+
+      if (bookmark.userId !== userId) {
+        throw new ForbiddenException('Access to resources denied');
+      }
+
+      await this.prisma.bookmarks.delete({
+        where: {
+          userId: userId,
+          id: bookmarkId,
+        },
+      });
+
+      return { success: 'Bookmark deleted' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An error occurred while deleting bookmark',
+      );
     }
-
-    if (bookmark.userId !== userId) {
-      throw new ForbiddenException('Access to resources denied');
-    }
-
-    await this.prisma.bookmarks.delete({
-      where: {
-        userId: userId,
-        id: bookmarkId,
-      },
-    });
-
-    return { success: 'Bookmark deleted' };
   }
 }

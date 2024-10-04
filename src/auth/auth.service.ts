@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { Request, Response } from 'express';
+import { stripUserOfSensitiveData } from '../utils/helpers';
 
 @Injectable()
 export class AuthService {
@@ -32,9 +34,9 @@ export class AuthService {
           user.avatar,
           user.email,
         );
-        avatar = userAvatar.url;
+        avatar = userAvatar.secure_url;
       }
-      const newUser = await this.prisma.users.create({
+      let newUser = await this.prisma.users.create({
         data: {
           email: user.email,
           password,
@@ -45,7 +47,7 @@ export class AuthService {
       const tokens = await this.signTokens(newUser.id, newUser.email);
       await this.updateRefreshToken(newUser.id, tokens.refresh_token);
 
-      delete newUser.password;
+      newUser = stripUserOfSensitiveData(newUser);
       return {
         ...newUser,
         access_token: tokens.access_token,
@@ -64,32 +66,40 @@ export class AuthService {
   }
 
   async login(loginUserDto: LoginUserDto) {
-    const user = await this.prisma.users.findUnique({
-      where: {
-        email: loginUserDto.email,
-      },
-    });
+    try {
+      let user = await this.prisma.users.findUnique({
+        where: {
+          email: loginUserDto.email,
+        },
+      });
 
-    if (!user) throw new NotFoundException('User not found');
+      if (!user) throw new NotFoundException('User not found');
 
-    const isPasswordValid = await bcrypt.compare(
-      loginUserDto.password,
-      user.password,
-    );
+      const isPasswordValid = await bcrypt.compare(
+        loginUserDto.password,
+        user.password,
+      );
 
-    if (!isPasswordValid)
-      throw new UnauthorizedException('Invalid email or password');
+      if (!isPasswordValid)
+        throw new UnauthorizedException('Invalid email or password');
 
-    const tokens = await this.signTokens(user.id, user.email);
-    await this.updateRefreshToken(user.id, tokens.refresh_token);
+      const tokens = await this.signTokens(user.id, user.email);
+      await this.updateRefreshToken(user.id, tokens.refresh_token);
 
-    delete user.password;
-
-    return {
-      ...user,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-    };
+      user = stripUserOfSensitiveData(user);
+      return {
+        ...user,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An error occurred while logging the user in',
+      );
+    }
   }
 
   async oauthLogin(profile: any, provider: 'google' | 'facebook') {
@@ -157,7 +167,10 @@ export class AuthService {
         path: '/',
       });
       return { success: 'Token refreshed successfully' };
-    } catch (err) {
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new UnauthorizedException(
         'Invalid refresh token, please log in again',
       );
@@ -165,13 +178,12 @@ export class AuthService {
   }
 
   async logout(userId: number) {
-    const user = await this.prisma.users.update({
+    await this.prisma.users.update({
       where: { id: userId },
       data: {
         refresh_token: '',
       },
     });
-    if (!user) throw new UnauthorizedException();
 
     return { success: 'Logged out successfully' };
   }

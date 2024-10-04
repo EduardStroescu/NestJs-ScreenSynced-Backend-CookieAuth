@@ -12,6 +12,7 @@ export class CloudinaryService {
       const uploadOptions = {
         upload_preset: 'unsigned_upload',
         public_id: `${email}-avatar`,
+        invalidate: true,
         allowed_formats: [
           'png',
           'jpg',

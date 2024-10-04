@@ -6,7 +6,7 @@ export class CreateBookmarkDto {
   @ApiProperty({
     type: Number,
     description:
-      'This is a required property. Comes from the id from the TMDB api.',
+      'This is a required property. It Represents the id from the TMDB API.',
   })
   @Type(() => Number)
   @IsInt()
@@ -17,6 +17,7 @@ export class CreateBookmarkDto {
     description:
       'This is a required property. It can be either "tv" or "movie" depending on the media type.',
     enum: ['tv', 'movie'],
+    example: ['movie', 'tv'],
   })
   @IsString()
   @IsNotEmpty()

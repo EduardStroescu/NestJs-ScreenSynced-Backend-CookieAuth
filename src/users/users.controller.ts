@@ -3,9 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
-  ParseIntPipe,
   Patch,
   Put,
   UseGuards,
@@ -18,14 +15,16 @@ import { Users } from '@prisma/client';
 import {
   ApiCookieAuth,
   ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
   ApiOkResponse,
-  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UpdatePasswordDto } from './dto/UpdatePassword.dto';
 import { UpdateAvatarDto } from './dto/UpdateAvatar.dto';
 import { DeleteUserDto } from './dto/DeleteUser.dto';
+import { PrivateUserDto } from '../lib/dtos/user.dto';
+import { stripUserOfSensitiveData } from '../utils/helpers';
 
 @UseGuards(JwtGuard)
 @ApiTags('Users')
@@ -37,6 +36,7 @@ export class UsersController {
   @ApiOkResponse({
     status: 200,
     description: 'Current user retrieved successfully',
+    type: PrivateUserDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
@@ -44,22 +44,20 @@ export class UsersController {
   })
   @Get('current-user')
   getCurrentUser(@GetUser() user: Users) {
-    delete user.refresh_token;
-    delete user.password;
-    return user;
+    return stripUserOfSensitiveData(user);
   }
 
   @ApiOkResponse({
     status: 200,
     description: 'User details updated successfully',
+    type: PrivateUserDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
     status: 401,
   })
-  @ApiResponse({
-    description: 'Internal Server Error',
-    status: 500,
+  @ApiInternalServerErrorResponse({
+    description: 'There was an issue updating the user',
   })
   @Patch('update-details')
   async editUser(@GetUser() user: Users, @Body() updateUserDto: UpdateUserDto) {
@@ -69,14 +67,22 @@ export class UsersController {
   @ApiOkResponse({
     status: 200,
     description: 'User password updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'string',
+          example: 'Password updated successfully',
+        },
+      },
+    },
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
     status: 401,
   })
-  @ApiResponse({
-    description: 'Internal Server Error',
-    status: 500,
+  @ApiInternalServerErrorResponse({
+    description: 'There was an issue updating the user password',
   })
   @Put('update-password')
   async updatePassword(
@@ -89,14 +95,14 @@ export class UsersController {
   @ApiOkResponse({
     status: 200,
     description: 'Avatar updated successfully',
+    type: PrivateUserDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
     status: 401,
   })
-  @ApiResponse({
-    description: 'Internal Server Error',
-    status: 500,
+  @ApiInternalServerErrorResponse({
+    description: 'There was an issue updating the user avatar',
   })
   @Patch('change-avatar')
   async updateAvatar(
@@ -109,6 +115,15 @@ export class UsersController {
   @ApiOkResponse({
     status: 200,
     description: 'User deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'User deleted successfully',
+        },
+      },
+    },
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
@@ -118,9 +133,8 @@ export class UsersController {
     description: 'Invalid password or passwords do not match',
     status: 403,
   })
-  @ApiResponse({
-    description: 'Internal Server Error',
-    status: 500,
+  @ApiInternalServerErrorResponse({
+    description: 'There was an issue deleting the user',
   })
   @UseGuards(JwtGuard)
   @Delete('delete')

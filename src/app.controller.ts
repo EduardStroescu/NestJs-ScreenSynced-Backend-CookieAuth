@@ -27,7 +27,7 @@ export class AppController {
   @Get()
   async getServerStatus(@Res() res: Response) {
     try {
-      const filePath = join(__dirname, '..', 'client', 'index.html');
+      const filePath = join(process.cwd(), 'client', 'index.html');
 
       // Check if the file exists
       if (!fs.existsSync(filePath)) {
@@ -40,7 +40,6 @@ export class AppController {
       // Read and send the file
       fs.createReadStream(filePath).pipe(res);
     } catch (error) {
-      console.error('Error serving HTML file:', error);
       res.status(500).send('Internal Server Error');
     }
   }

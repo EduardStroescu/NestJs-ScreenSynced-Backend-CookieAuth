@@ -17,6 +17,7 @@ import {
   ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
@@ -27,6 +28,7 @@ import { GetUser } from './decorator/GetUser.decorator';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { cookieConfig } from '../utils/helpers';
+import { PrivateUserDto } from '../lib/dtos/user.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -40,8 +42,13 @@ export class AuthController {
   @ApiCreatedResponse({
     status: 201,
     description: 'User Created',
+    type: PrivateUserDto,
   })
   @ApiConflictResponse({ description: 'User already Exists', status: 401 })
+  @ApiInternalServerErrorResponse({
+    description: 'An error occurred while registering new user',
+  })
+  @HttpCode(HttpStatus.CREATED)
   async register(
     @Res({ passthrough: true }) res: Response,
     @Body() createUserDto: CreateUserDto,
@@ -55,20 +62,24 @@ export class AuthController {
     return user;
   }
 
-  @Post('login')
   @ApiOkResponse({
     status: 200,
-    description: 'OK',
+    description: 'Logged in successfully',
+    type: PrivateUserDto,
   })
   @ApiNotFoundResponse({
     description: 'User not found',
     status: 404,
   })
   @ApiUnauthorizedResponse({
-    description: 'Invalid email or password',
+    description: 'Invalid credentials',
     status: 401,
   })
+  @ApiInternalServerErrorResponse({
+    description: 'An error occurred while logging the user in',
+  })
   @HttpCode(HttpStatus.OK)
+  @Post('login')
   async login(
     @Res({ passthrough: true }) res: Response,
     @Body() loginUserDto: LoginUserDto,
@@ -148,16 +159,25 @@ export class AuthController {
     return this.authService.refreshToken(req, res);
   }
 
-  @UseGuards(JwtGuard)
   @ApiCookieAuth()
   @ApiOkResponse({
     status: 200,
     description: 'Logged out successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'string',
+          example: 'Logged out successfully',
+        },
+      },
+    },
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
     status: 401,
   })
+  @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
   @Get('logout')
   async logout(

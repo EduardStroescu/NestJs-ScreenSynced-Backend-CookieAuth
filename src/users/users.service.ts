@@ -1,9 +1,8 @@
 import {
   ForbiddenException,
   HttpException,
-  HttpStatus,
   Injectable,
-  NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/UpdateUser.dto';
@@ -13,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { UpdatePasswordDto } from './dto/UpdatePassword.dto';
 import { UpdateAvatarDto } from './dto/UpdateAvatar.dto';
 import { DeleteUserDto } from './dto/DeleteUser.dto';
+import { stripUserOfSensitiveData } from '../utils/helpers';
 
 @Injectable()
 export class UsersService {
@@ -23,28 +23,21 @@ export class UsersService {
 
   async editUser(user: Users, updateUserDto: UpdateUserDto) {
     try {
-      if (!user) throw new NotFoundException('User not found');
-
       const updatedUser = await this.prisma.users.update({
         where: { id: user.id },
         data: updateUserDto,
       });
-      delete updatedUser.password;
-      delete updatedUser.refresh_token;
 
-      return updatedUser;
+      return stripUserOfSensitiveData(updatedUser);
     } catch (error) {
-      throw new HttpException(
-        'Something went wrong, please try again later.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      throw new InternalServerErrorException(
+        'There was an issue updating the user',
       );
     }
   }
 
   async updatePassword(user: Users, updatePasswordDto: UpdatePasswordDto) {
     try {
-      if (!user) throw new NotFoundException('User not found');
-
       if (
         updatePasswordDto.newPassword !== updatePasswordDto.confirmNewPassword
       )
@@ -68,17 +61,17 @@ export class UsersService {
 
       return { success: 'Password updated successfully' };
     } catch (error) {
-      throw new HttpException(
-        'Something went wrong, please try again later.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'There was an issue updating the user password',
       );
     }
   }
 
   async updateAvatar(user: Users, updateAvatarDto: UpdateAvatarDto) {
     try {
-      if (!user) throw new NotFoundException('User not found');
-
       if (user.avatar) {
         const publicId = user.avatar.split('/').pop().split('.')[0]; // Extract public_id from URL
         await this.cloudinaryService.removeFile(publicId);
@@ -88,7 +81,7 @@ export class UsersService {
         updateAvatarDto.avatar,
         user.email,
       );
-      const avatarUrl: string = newAvatar.url;
+      const avatarUrl: string = newAvatar.secure_url;
 
       const updatedUser = await this.prisma.users.update({
         where: { id: user.id },
@@ -96,22 +89,17 @@ export class UsersService {
           avatar: avatarUrl,
         },
       });
-      delete updatedUser.password;
-      delete updatedUser.refresh_token;
 
-      return updatedUser;
+      return stripUserOfSensitiveData(updatedUser);
     } catch (error) {
-      throw new HttpException(
-        'Something went wrong, please try again later.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      throw new InternalServerErrorException(
+        'There was an issue updating the user avatar',
       );
     }
   }
 
   async deleteUser(user: Users, deleteUserDto: DeleteUserDto) {
     try {
-      if (!user) throw new NotFoundException('User not found');
-
       if (deleteUserDto.password !== deleteUserDto.confirmPassword)
         throw new ForbiddenException('Passwords do not match');
 
@@ -130,9 +118,11 @@ export class UsersService {
 
       return { message: 'User deleted successfully' };
     } catch (error) {
-      throw new HttpException(
-        'Something went wrong, please try again later.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'There was an issue deleting the user',
       );
     }
   }

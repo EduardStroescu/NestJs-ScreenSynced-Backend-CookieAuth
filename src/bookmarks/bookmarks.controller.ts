@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
@@ -13,13 +15,16 @@ import { JwtGuard } from '../auth/guards';
 import { GetUser } from '../auth/decorator/GetUser.decorator';
 import { CreateBookmarkDto } from './dto/CreateBookmark.dto';
 import {
+  ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { BookmarkDto } from '../lib/dtos/bookmark.dto';
 
 @ApiTags('Bookmarks')
 @UseGuards(JwtGuard)
@@ -32,10 +37,17 @@ export class BookmarksController {
     status: 201,
     description: 'Bookmark Created',
   })
+  @ApiConflictResponse({
+    description: 'Bookmark already exists',
+  })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
     status: 401,
   })
+  @ApiInternalServerErrorResponse({
+    description: 'An error occurred while creating bookmark',
+  })
+  @HttpCode(HttpStatus.CREATED)
   @Post()
   async createBookmark(
     @GetUser('id', ParseIntPipe) userId: number,
@@ -46,11 +58,15 @@ export class BookmarksController {
 
   @ApiOkResponse({
     status: 200,
-    description: 'OK',
+    description: 'All bookmarks fetched',
+    type: [BookmarkDto],
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid jwt bearer access token',
     status: 401,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'An error occurred while retrieving bookmarks',
   })
   @Get()
   async getBookmarks(@GetUser('id', ParseIntPipe) userId: number) {
@@ -59,7 +75,12 @@ export class BookmarksController {
 
   @ApiOkResponse({
     status: 200,
-    description: 'OK',
+    description: 'Bookmark fetched',
+    type: BookmarkDto,
+  })
+  @ApiNotFoundResponse({
+    status: 404,
+    description: 'Bookmark Not Found',
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',
@@ -79,7 +100,7 @@ export class BookmarksController {
 
   @ApiOkResponse({
     status: 200,
-    description: 'OK',
+    description: 'Bookmark Deleted',
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid JWT bearer access token',

@@ -18,20 +18,4 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   displayName?: string;
-
-  @ApiPropertyOptional({
-    type: String,
-    description: 'Used to link account with Google.',
-  })
-  @IsOptional()
-  @IsString()
-  googleId?: string;
-
-  @ApiPropertyOptional({
-    type: String,
-    description: 'Used to link account with Facebook.',
-  })
-  @IsOptional()
-  @IsString()
-  facebookId?: string;
 }

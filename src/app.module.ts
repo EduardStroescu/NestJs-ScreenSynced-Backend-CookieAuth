@@ -12,7 +12,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'client'),
+      rootPath: join(process.cwd(), 'client'),
+      renderPath: '/',
     }),
     PrismaModule,
     AuthModule,

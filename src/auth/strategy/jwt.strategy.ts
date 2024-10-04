@@ -36,12 +36,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         id: payload.sub,
       },
     });
-    if (!user) throw new UnauthorizedException();
-    if (!user.refresh_token) {
+
+    if (!user || !user.refresh_token)
       throw new UnauthorizedException(
         'No refresh token available. Please log in again.',
       );
-    }
+
     return user;
   }
 }

@@ -1,3 +1,5 @@
+import { Users } from '@prisma/client';
+
 export const cookieConfig = (
   nodeEnv: string,
 ): {
@@ -12,4 +14,13 @@ export const cookieConfig = (
     sameSite: nodeEnv === 'production' ? 'none' : 'lax',
     path: '/',
   };
+};
+
+export const stripUserOfSensitiveData = (user: Users) => {
+  delete user.password;
+  delete user.refresh_token;
+  delete user.googleId;
+  delete user.facebookId;
+
+  return user;
 };

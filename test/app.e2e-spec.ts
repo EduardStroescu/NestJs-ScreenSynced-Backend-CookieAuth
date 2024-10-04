@@ -42,7 +42,7 @@ describe('App E2E', () => {
   describe('Auth', () => {
     const dto: CreateUserDto = {
       email: 'testUser@gmail.com',
-      password: '123',
+      password: '12345678',
       displayName: 'testUser',
     };
     describe('Registration', () => {
