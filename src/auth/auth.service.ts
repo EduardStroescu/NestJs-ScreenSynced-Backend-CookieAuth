@@ -13,7 +13,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
-import { Request, Response } from 'express';
 import { stripUserOfSensitiveData } from '../utils/helpers';
 
 @Injectable()
@@ -28,21 +27,27 @@ export class AuthService {
   async register(user: CreateUserDto) {
     try {
       const password = await bcrypt.hash(user.password, 10);
-      let avatar: string;
+      const newUserData: {
+        email: string;
+        password: string;
+        displayName: string;
+        avatar?: string;
+      } = {
+        email: user.email,
+        password,
+        displayName: user.displayName,
+      };
+
       if (user.avatar) {
         const userAvatar = await this.cloudinaryService.uploadFile(
           user.avatar,
           user.email,
         );
-        avatar = userAvatar.secure_url;
+        newUserData.avatar = userAvatar.secure_url;
       }
+
       let newUser = await this.prisma.users.create({
-        data: {
-          email: user.email,
-          password,
-          displayName: user.displayName,
-          avatar,
-        },
+        data: newUserData,
       });
       const tokens = await this.signTokens(newUser.id, newUser.email);
       await this.updateRefreshToken(newUser.id, tokens.refresh_token);
@@ -136,9 +141,8 @@ export class AuthService {
     };
   }
 
-  async refreshToken(req: Request, res: Response) {
+  async refreshToken(refreshToken: string) {
     try {
-      const refreshToken = req.cookies['refresh_token'];
       const user = await this.prisma.users.findFirst({
         where: {
           refresh_token: refreshToken,
@@ -154,19 +158,17 @@ export class AuthService {
         secret: this.configService.get<string>('REFRESH_SECRET'),
       });
 
-      const { access_token } = await this.signTokens(
+      const { access_token, refresh_token } = await this.signTokens(
         payload.sub,
         payload.email,
       );
+      await this.updateRefreshToken(payload.sub, refresh_token);
 
-      res.cookie('access_token', access_token, {
-        httpOnly: true,
-        secure: this.configService.get('NODE_ENV') === 'production',
-        sameSite:
-          this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
-        path: '/',
-      });
-      return { success: 'Token refreshed successfully' };
+      return {
+        access_token,
+        refresh_token,
+        success: 'Token refreshed successfully',
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

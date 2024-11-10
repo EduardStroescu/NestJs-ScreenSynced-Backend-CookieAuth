@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -151,12 +152,21 @@ export class AuthController {
     status: 401,
   })
   @HttpCode(HttpStatus.OK)
-  @Get('refresh-token')
+  @Post('refresh-token')
   async refreshToken(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshToken(req, res);
+    const refreshToken = req.cookies['refresh_token'];
+    if (!refreshToken) throw new UnauthorizedException('Invalid refresh token');
+
+    const { access_token, refresh_token, ...response } =
+      await this.authService.refreshToken(refreshToken);
+
+    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    res.cookie('access_token', access_token, cookieOptions);
+    res.cookie('refresh_token', refresh_token, cookieOptions);
+    return response;
   }
 
   @ApiCookieAuth()
