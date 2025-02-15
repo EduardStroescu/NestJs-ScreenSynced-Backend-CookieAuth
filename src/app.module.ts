@@ -7,6 +7,7 @@ import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { AppController } from './app.controller';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     AuthModule,
     UsersModule,
     BookmarksModule,
+    HealthModule,
   ],
   controllers: [AppController],
 })
