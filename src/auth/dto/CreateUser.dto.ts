@@ -31,7 +31,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  displayName?: string;
+  displayName: string;
 
   @ApiPropertyOptional({
     type: String,

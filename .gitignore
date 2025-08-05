@@ -57,3 +57,7 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 .vercel
+
+# DB Data for seeding
+dataForSeeding
+.vercel

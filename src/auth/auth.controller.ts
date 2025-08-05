@@ -28,7 +28,7 @@ import { FacebookAuthGuard, GoogleAuthGuard, JwtGuard } from './guards';
 import { GetUser } from './decorator/GetUser.decorator';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { cookieConfig } from '../utils/helpers';
+import { getCookieConfig } from '../utils/helpers';
 import { PrivateUserDto } from '../lib/dtos/user.dto';
 
 @ApiTags('Authentication')
@@ -56,10 +56,17 @@ export class AuthController {
   ) {
     const { access_token, refresh_token, ...user } =
       await this.authService.register(createUserDto);
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    const { maxAgeAccessToken, maxAgeRefreshToken, ...similarConfigs } =
+      getCookieConfig(this.configService);
 
-    res.cookie('access_token', access_token, cookieOptions);
-    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.cookie('access_token', access_token, {
+      ...similarConfigs,
+      maxAge: maxAgeAccessToken,
+    });
+    res.cookie('refresh_token', refresh_token, {
+      ...similarConfigs,
+      maxAge: maxAgeRefreshToken,
+    });
     return user;
   }
 
@@ -87,10 +94,17 @@ export class AuthController {
   ) {
     const { access_token, refresh_token, ...user } =
       await this.authService.login(loginUserDto);
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    const { maxAgeAccessToken, maxAgeRefreshToken, ...similarConfigs } =
+      getCookieConfig(this.configService);
 
-    res.cookie('access_token', access_token, cookieOptions);
-    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.cookie('access_token', access_token, {
+      ...similarConfigs,
+      maxAge: maxAgeAccessToken,
+    });
+    res.cookie('refresh_token', refresh_token, {
+      ...similarConfigs,
+      maxAge: maxAgeRefreshToken,
+    });
     return user;
   }
 
@@ -109,10 +123,17 @@ export class AuthController {
       req.user,
       'google',
     );
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    const { maxAgeAccessToken, maxAgeRefreshToken, ...similarConfigs } =
+      getCookieConfig(this.configService);
 
-    res.cookie('access_token', access_token, cookieOptions);
-    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.cookie('access_token', access_token, {
+      ...similarConfigs,
+      maxAge: maxAgeAccessToken,
+    });
+    res.cookie('refresh_token', refresh_token, {
+      ...similarConfigs,
+      maxAge: maxAgeRefreshToken,
+    });
     res.redirect(this.configService.get('CLIENT_URL') + '?success=true');
   }
 
@@ -131,10 +152,17 @@ export class AuthController {
       req.user,
       'facebook',
     );
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    const { maxAgeAccessToken, maxAgeRefreshToken, ...similarConfigs } =
+      getCookieConfig(this.configService);
 
-    res.cookie('access_token', access_token, cookieOptions);
-    res.cookie('refresh_token', refresh_token, cookieOptions);
+    res.cookie('access_token', access_token, {
+      ...similarConfigs,
+      maxAge: maxAgeAccessToken,
+    });
+    res.cookie('refresh_token', refresh_token, {
+      ...similarConfigs,
+      maxAge: maxAgeRefreshToken,
+    });
     res.redirect(this.configService.get('CLIENT_URL') + '?success=true');
   }
 
@@ -163,9 +191,17 @@ export class AuthController {
     const { access_token, refresh_token, ...response } =
       await this.authService.refreshToken(refreshToken);
 
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
-    res.cookie('access_token', access_token, cookieOptions);
-    res.cookie('refresh_token', refresh_token, cookieOptions);
+    const { maxAgeAccessToken, maxAgeRefreshToken, ...similarConfigs } =
+      getCookieConfig(this.configService);
+
+    res.cookie('access_token', access_token, {
+      ...similarConfigs,
+      maxAge: maxAgeAccessToken,
+    });
+    res.cookie('refresh_token', refresh_token, {
+      ...similarConfigs,
+      maxAge: maxAgeRefreshToken,
+    });
     return response;
   }
 
@@ -194,10 +230,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @GetUser('id', ParseIntPipe) userId: number,
   ) {
-    const cookieOptions = cookieConfig(this.configService.get('NODE_ENV'));
+    const cookieOptions = getCookieConfig(this.configService);
 
-    res.cookie('access_token', '', cookieOptions);
-    res.cookie('refresh_token', '', cookieOptions);
+    res.clearCookie('access_token', {
+      path: cookieOptions.path,
+      domain: cookieOptions.domain,
+    });
+    res.clearCookie('refresh_token', {
+      path: cookieOptions.path,
+      domain: cookieOptions.domain,
+    });
+
     return await this.authService.logout(userId);
   }
 }

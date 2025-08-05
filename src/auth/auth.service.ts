@@ -79,6 +79,10 @@ export class AuthService {
       });
 
       if (!user) throw new NotFoundException('User not found');
+      if (user && !user.password)
+        throw new UnauthorizedException(
+          'Invalid login method for this account. Please consider a third-party login method.',
+        );
 
       const isPasswordValid = await bcrypt.compare(
         loginUserDto.password,
